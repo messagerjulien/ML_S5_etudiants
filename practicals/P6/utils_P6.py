@@ -320,7 +320,6 @@ def gen_ponct(n, p = 0.01):
   return  input, target, fulltarget
 
 
-
 def gen_mixt(n, p = 0.02):
   target1 = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.001)
   target2 = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.001)
@@ -338,5 +337,58 @@ def gen_mixt(n, p = 0.02):
   target = fulltarget*(sb == 1) + (-1)*(sb == 0)
   
   return  input, target, fulltarget
+
+
+def gen_proba(n):
+  target1 = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.001)
+  m1 = torch.normal(target1**2, 0.2*target1)
+  input = target1 
+  target =   m1
+  return  input, target 
+
+def gen_ponct(n, p = 0.01):
+  input = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.001)
+  fulltarget = 2*input**2
+  sb = torch.bernoulli(0*fulltarget + p)         # En moyenne,2% des pixels sont couverts par une mesure ponctuelle
+
+  #cible fragmentaire
+  target = fulltarget*(sb) + (-1)*(1 - sb)
   
-  
+  return  input, target, fulltarget
+
+
+def gen_condDCGAN(n, p = 0.01):
+  x = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.001, square = 0.)
+  fulltarget = x #2*x**2
+#  sb = (make_batch(n, rec = 0., noisy_rec= 0., disc = p, square = 0.)> 0.1
+  sb = torch.bernoulli(0*fulltarget + p)         # En moyenne,2% des pixels sont couverts par une mesure ponctuelle
+  #cond (ex. cible fragmentaire)
+  y = fulltarget*sb + (-0.1)*(1 - sb)  
+
+  z = torch.randn(*fulltarget.size()) 
+  return  x, y, z
+
+
+def gen_DCGAN(n, lambda_rec = 0.):
+  x = make_batch(n, rec = lambda_rec, noisy_rec= 0., disc = 0.001, square = 0.)
+  fulltarget = x #2*x**2
+
+  z = torch.randn(*fulltarget.size()) 
+  return  x, z
+
+
+def gensquare_condDCGAN(n, p = 0.01):
+  x = make_batch(n, rec = 0., noisy_rec= 0., disc = 0., square = 0.001)
+  fulltarget = x #2*x**2
+  sb = torch.bernoulli(0*fulltarget + p)         # En moyenne,2% des pixels sont couverts par une mesure ponctuelle
+  #cond (ex. cible fragmentaire)
+  y = fulltarget*sb + (-1)*(1 - sb)  
+
+  z = torch.randn(*fulltarget.size()) 
+  return  x, y, z
+
+
+def gen_cycleGAN(n, lambda_disc = 0.001, lambda_square = 0.001):
+  Adiscs = make_batch(n, rec = 0., noisy_rec= 0., disc = lambda_disc, square = 0.)
+  Bsquares = make_batch(n, rec = 0., noisy_rec= 0., disc = 0., square = lambda_square)
+  return  Adiscs, Bsquares
