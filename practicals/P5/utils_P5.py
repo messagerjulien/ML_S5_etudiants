@@ -698,3 +698,79 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
+
+
+
+# For session 2 2025 exos
+def gen_dr(n):
+  discs = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.0003)
+  rectangles = make_batch(n, rec = 0.002, noisy_rec= 0., disc = 0.)
+  ideal_targets = rectangles > 0
+  rectangles[discs > 0 ] = discs[discs > 0]
+  return  rectangles, ideal_targets
+
+
+def gen_d(n):
+  discs = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.0003)
+  return  discs
+
+def gen_ex2(n):
+  target1 = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.0015)
+  target2 = make_batch(n, rec = 0.0015, noisy_rec= 0.0015, disc = 0.)
+  target = 100 * target1.mean(dim=(1,2,3))
+  print(target)
+  m = torch.normal(target, 1.)
+  input = target1 + target2
+  target = m
+  return  input, target
+
+def gen_dr_train(n):
+  discs = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.0005)
+  rectangles = make_batch(n, rec = 0.0005, noisy_rec= 0.0005, disc = 0.)
+  targets = rectangles
+  inputs = rectangles + discs
+  return  inputs, targets
+
+def gen_dr_test(n):
+  discs = make_batch(n, rec = 0., noisy_rec= 0., disc = 0.002)
+  rectangles = make_batch(n, rec = 0.001, noisy_rec= 0.001, disc = 0.)
+  targets = rectangles 
+  inputs = rectangles + discs
+  return  inputs, targets
+
+# For session 2 2025 problem
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+class Problem1Dataset(Dataset):
+    def __init__(self, num_samples=50000, group_size=1000, k=5, n=3, dim=10):
+        self.num_samples = num_samples
+        self.group_size = group_size
+        self.k = k
+        self.n = n
+        self.dim = dim
+        
+        torch.manual_seed(42)
+        
+        # Generate random matrices M[k, n, dim, dim]
+        self.M = torch.randn(k, n, dim, dim)
+        
+        # Generate input data
+        self.x_data = torch.randn(num_samples, dim)
+        
+        # Generate L values (shared within each group)
+        self.L_data = torch.arange(num_samples // group_size).repeat_interleave(group_size) % k
+        
+        # Compute target values
+        self.y_data = torch.zeros(num_samples, 1)
+        for i in range(num_samples):
+            L_i = self.L_data[i]
+            x_i = self.x_data[i]
+            y_i = torch.max(self.M[L_i, 2] @ torch.relu(self.M[L_i, 1] @ torch.relu(self.M[L_i, 0] @ x_i)))
+            self.y_data[i] = y_i
+
+    def __len__(self):
+        return self.num_samples
+    
+    def __getitem__(self, idx):
+        return self.x_data[idx], self.y_data[idx], self.L_data[idx], idx
